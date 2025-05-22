@@ -42,7 +42,7 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     %darg
     F_d_mag = 0.5*rho*V.^2.*areas__m2.*C_d;
     F_l_mag = 0.5*rho*V.^2.*areas__m2.*C_l;
-    F_d = -F_d_mag.*v_hat;
+    F_d = F_d_mag.*v_hat;
 
     %lift
     lift_dir = -cross(cross(v_hat,normals),v_hat);
