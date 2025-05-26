@@ -10,7 +10,8 @@ function [aerodynamic_force_B__N, ...
                                                         bodies, ...                                                       
                                                         bodies_rotation_angles__rad, ...
                                                         temperature_ratio_method,...
-                                                        model)
+                                                        model,...
+                                                        LUT_path)
 %% vleoAerodynamics - Calculate the aerodynamic force and torque acting on a satellite in VLEO
 %
 %   [aeroForce__N, aeroTorque__Nm] = vleoAerodynamics(attitude_quaternion_BI, ...
@@ -23,7 +24,8 @@ function [aerodynamic_force_B__N, ...
 %                                                       bodies, ...
 %                                                       bodies_rotation_angles__rad, ...
 %                                                       temperature_ratio_method,...
-%                                                       model)
+%                                                       model,...
+%                                                       LUT_path)
 %
 %   This function calculates the aerodynamic force and torque acting on a satellite in VLEO.
 %
@@ -52,13 +54,27 @@ function [aerodynamic_force_B__N, ...
 %           and torques
 %           1. classical approach (Sentmann)
 %           2. new IRS model
+%    LUT_path: Path to the lookup table for the new IRS model
 %
 %  Outputs:
 %   aerodynamic_force_B__N: 3x1 array of the aerodynamic force acting on the satellite expressed in the body frame
 %   aerodynamic_torque_B__Nm: 3x1 array of the aerodynamic torque acting on the satellite with respect to the 
 %                               center of mass (origin of body frame) expressed in the body frame
 %
-
+arguments
+    attitude_quaternion_BI
+    rotational_velocity_BI_B__rad_per_s
+    velocity_I_I__m_per_s
+    wind_velocity_I_I__m_per_s
+    density__kg_per_m3
+    temperature__K
+    particles_mass__kg
+    bodies
+    bodies_rotation_angles__rad
+    temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
+    model {mustBeMember(model, [1, 2])}
+    LUT_path = ""
+end
 %% Abbreviations
 q_BI = attitude_quaternion_BI;
 omega = rotational_velocity_BI_B__rad_per_s;
@@ -162,7 +178,7 @@ switch model
                                                 v_indiv_B,...
                                                 deltas,...
                                                 density__kg_per_m3,...
-                                                "C:\Users\Jan_L\OneDrive\Dokumente\Studium\Bacherlorarbeit\vleo-aerodynamics-tool\cl_cd_cVAE_A01_flat_and_bird.csv");
+                                                LUT_path);
     otherwise
         error('invalid model')
 end
