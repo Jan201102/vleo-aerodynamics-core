@@ -54,6 +54,7 @@ function [aerodynamic_force_B__N, ...
 %           and torques
 %           1. classical approach (Sentmann)
 %           2. new IRS model
+%           3. dummy model
 %    LUT_path: Path to the lookup table for the new IRS model
 %
 %  Outputs:
@@ -72,7 +73,7 @@ arguments
     bodies
     bodies_rotation_angles__rad
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
-    model {mustBeMember(model, [1, 2])}
+    model {mustBeMember(model, [1, 2, 3])}
     LUT_path = ""
 end
 %% Abbreviations
@@ -179,6 +180,11 @@ switch model
                                                 deltas,...
                                                 density__kg_per_m3,...
                                                 LUT_path);
+    case 3
+        [aerodynamic_force_B__N,aerodynamic_torque_B__Nm] = dummy(areas(ind_not_shadowed),...
+                                                                v_indiv_B,...
+                                                                centroids_B(:,ind_not_shadowed),...
+                                                                deltas);
     otherwise
         error('invalid model')
 end
