@@ -22,6 +22,15 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     %   aeroTorque__Nm: 3x1 array of the aerodynamic torque acting on the body in the same
     %                   coordinate system as the inputs normals and centroids and with respect to its origin 
     %
+    arguments
+        areas__m2 (1,:) {mustBeNumeric, mustBeReal, mustBePositive};
+        normals (3,:) {mustBeNumeric, mustBeReal};
+        centroids__m (3,:) {mustBeNumeric, mustBeReal};
+        v_rels__m_per_s (3,:) {mustBeNumeric, mustBeReal};
+        deltas__rad (1,:) {mustBeNumeric, mustBeReal};
+        density__kg_per_m3 (1,1) {mustBeNumeric, mustBeReal, mustBePositive};
+        LUT_file (1,1) string {mustBeFile};
+    end
     %% Abbreviations
     v_rels = v_rels__m_per_s;
     V = vecnorm(v_rels);
@@ -30,14 +39,24 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
 
     %%LUT
     AOA__deg = 90-deltas__rad*180/pi;
-    backward_facing = AOA__deg < 0;
-    AOA__deg(backward_facing) = 0;
+    wake_faces = AOA__deg < 0;
+    AOA__deg = abs(AOA__deg);
     lut = readmatrix(LUT_file);
     AOA_lut = lut(:,1);
-    C_l_lut = lut(:,2);
-    C_d_lut = lut(:,3);
-    C_d = interp1(AOA_lut,C_d_lut,AOA__deg,"linear");
-    C_l = interp1(AOA_lut,C_l_lut,AOA__deg,"linear");
+    C_l_ram_lut = lut(:,2);
+    C_d_ram_lut = lut(:,3);
+    C_l_wake_lut = lut(:,4);
+    C_d_wake_lut = lut(:,5);
+    C_d_ram = interp1(AOA_lut,C_d_ram_lut,AOA__deg,"linear");
+    C_l_ram = interp1(AOA_lut,C_l_ram_lut,AOA__deg,"linear");
+    C_d_wake = interp1(AOA_lut,C_d_wake_lut,AOA__deg,"linear");
+    C_l_wake = interp1(AOA_lut,C_l_wake_lut,AOA__deg,"linear");
+
+    C_d = C_d_ram;
+    C_l = C_l_ram;
+    C_d(wake_faces) = C_d_wake(wake_faces);
+    C_l(wake_faces) = C_l_wake(wake_faces);
+
 
     %darg
     F_d_mag = 0.5*rho*V.^2.*areas__m2.*C_d;
@@ -52,7 +71,6 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
 
     %resultant force
     F_aero = F_l + F_d;
-    F_aero(:,backward_facing) = 0; %backward facing faces have no aerodynamic force
     T_aero = cross(centroids__m,F_aero);
     aeroForce__N = sum(F_aero,2);
     aeroTorque__Nm = sum(T_aero,2);
