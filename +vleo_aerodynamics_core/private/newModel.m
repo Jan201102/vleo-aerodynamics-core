@@ -31,6 +31,14 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
         density__kg_per_m3 (1,1) {mustBeNumeric, mustBeReal, mustBePositive};
         LUT_file (1,1) string {mustBeFile};
     end
+
+    persistent cached_LUT_file lut
+    if isempty(cached_LUT_file) || ~strcmp(cached_LUT_file, LUT_file)
+        % If the LUT file has changed, read it again
+        cached_LUT_file = LUT_file;
+        lut = readmatrix(LUT_file);
+    end 
+
     %% Abbreviations
     v_rels = v_rels__m_per_s;
     V = vecnorm(v_rels);
