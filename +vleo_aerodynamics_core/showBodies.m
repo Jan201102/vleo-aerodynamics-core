@@ -94,6 +94,12 @@ for i = 1:num_bodies
             scale_vectorial_values, 'Color', 'b');
 
     end
+    % Add text label for body index
+    label_position = mean(centroids_B, 2);
+    text(label_position(1), label_position(2), label_position(3), ...
+         sprintf('Body %d', i), 'FontSize', 12, 'FontWeight', 'bold', ...
+         'HorizontalAlignment', 'center', 'Color', 'black');
+    
     
 end
 

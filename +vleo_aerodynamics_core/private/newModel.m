@@ -78,10 +78,8 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     F_l = F_l_mag.*lift_dir./lift_dir_norm;
 
     %resultant force
-    F_aero = F_l + F_d;
-    T_aero = cross(centroids__m,F_aero);
-    aeroForce__N = sum(F_aero,2);
-    aeroTorque__Nm = sum(T_aero,2);
+    aeroForce__N = F_l + F_d;
+    aeroTorque__Nm = cross(centroids__m,aeroForce__N);
 end
 
 

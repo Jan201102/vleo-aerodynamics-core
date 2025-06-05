@@ -102,15 +102,10 @@ end
 % Momentum flux
 p = rho/2 * cm^2 * (- ( G1 + sqrt(pi)/2 * sqrt(T_rat) .* G2 ) .* normals + s .* G2 .* (v_rels/V + cosdeltas .* normals));
 
-%% Global forces and torques
+%% Global forces and torquess
 % Forces
-F = p .* areas__m2;
+aeroForce__N = p .* areas__m2;
 
 % Torques
-tau = cross(centroids__m, F);
-
-% Output
-aeroForce__N = sum(F,2);
-aeroTorque__Nm = sum(tau,2);
-
+aeroTorque__Nm = cross(centroids__m, aeroForce__N);
 end

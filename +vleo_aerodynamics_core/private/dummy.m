@@ -27,10 +27,8 @@ v_hat = (v_rels./V).*areas__m2;
 
 %% detect backward facing faces
 backward_facing = deltas__rad >= pi/2;
-Faero = v_hat;
-Faero(:,backward_facing) = 0;
-Taero = cross(centroids__m,Faero);
-aeroForce__N = sum(Faero,2);
-aeroTorque__Nm = sum(Taero,2);
+aeroForce__N= v_hat;
+aeroForce__N(:,backward_facing) = 0;
+aeroTorque__Nm = cross(centroids__m,aeroForce__N);
 end
 

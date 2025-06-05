@@ -11,6 +11,7 @@ function [aerodynamic_force_B__N, ...
                                                         bodies_rotation_angles__rad, ...
                                                         temperature_ratio_method,...
                                                         model,...
+                                                        summation_method, ...
                                                         LUT_path)
 %% vleoAerodynamics - Calculate the aerodynamic force and torque acting on a satellite in VLEO
 %
@@ -25,6 +26,7 @@ function [aerodynamic_force_B__N, ...
 %                                                       bodies_rotation_angles__rad, ...
 %                                                       temperature_ratio_method,...
 %                                                       model,...
+%                                                       summation_method, ...      
 %                                                       LUT_path)
 %
 %   This function calculates the aerodynamic force and torque acting on a satellite in VLEO.
@@ -50,11 +52,14 @@ function [aerodynamic_force_B__N, ...
 %                              1: Exact term
 %                              2: Hyperthermal approximation 1
 %                              3: Hyperthermal approximation 2
-%   model: scalar value of the model used to calculate aerodynamic forces
+%    model: scalar value of the model used to calculate aerodynamic forces
 %           and torques
 %           1. classical approach (Sentmann)
 %           2. new IRS model
 %           3. dummy model
+%    summation_method: Scalar value of the method to sum the aerodynamic forces and torques
+%                     1: sum over all faces of all bodies
+%                     2: sum over all faces of each body separately
 %    LUT_path: Path to the lookup table for the new IRS model
 %
 %  Outputs:
@@ -74,6 +79,7 @@ arguments
     bodies_rotation_angles__rad
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
     model {mustBeMember(model, [1, 2, 3])}
+    summation_method {mustBeMember(summation_method, [1,2])} = 1
     LUT_path = ""
 end
 %% Abbreviations
@@ -106,11 +112,12 @@ centroids_B = normals_B;
 areas = surface_temperatures__K;
 
 last_face_idx = 0;
+face_indices_to_body = zeros(1,total_num_faces);
 for i = 1:num_bodies
     current_body = bodies{i};
 
     current_indices = last_face_idx + (1:bodies_num_faces(i));
-
+    face_indices_to_body(current_indices) = i;
     %% Extract nondirectional data from current body
     surface_temperatures__K(current_indices) = current_body.temperatures__K;
     energy_accommodation_coefficients(current_indices) = current_body.energy_accommodation_coefficients;
@@ -158,6 +165,8 @@ v_indiv_dir_B = v_indiv_B ./ v_indiv_norm;
 % Individual angles between flow and normals
 deltas = real(acos(dot(-v_indiv_dir_B, normals_B(:,ind_not_shadowed))));
 
+% remove shadowed faces indices from face_indices_to_body
+face_indices_to_body = face_indices_to_body(ind_not_shadowed);
 % Forces and Torques
 switch model
     case 1
@@ -188,4 +197,25 @@ switch model
     otherwise
         error('invalid model')
 end
+switch summation_method
+    case 1
+        % Sum over all faces of all bodies
+        aerodynamic_force_B__N = sum(aerodynamic_force_B__N, 2);
+        aerodynamic_torque_B__Nm = sum(aerodynamic_torque_B__Nm, 2);
+    case 2
+        % Sum over all faces of each body separately
+        aerodynamic_force_raw_B__N = aerodynamic_force_B__N;
+        aerodynamic_torque_raw_B__Nm = aerodynamic_torque_B__Nm;
+        aerodynamic_force_B__N = zeros(3, num_bodies);
+        aerodynamic_torque_B__Nm = zeros(3, num_bodies);
+        for i= 1:num_bodies
+            % Get indices of faces belonging to the current body
+            current_indices = (face_indices_to_body == i);
+            % Sum forces and torques for the current body
+            aerodynamic_force_B__N(:,i) = sum(aerodynamic_force_raw_B__N(:,current_indices), 2);
+            aerodynamic_torque_B__Nm(:,i) = sum(aerodynamic_torque_raw_B__Nm(:,current_indices), 2);
+        end
+
+    otherwise
+        error('invalid summation method')
 end
