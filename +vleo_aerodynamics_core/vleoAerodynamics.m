@@ -78,7 +78,7 @@ arguments
     bodies
     bodies_rotation_angles__rad
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
-    model {mustBeMember(model, [1, 2, 3])}
+    model {mustBeMember(model, [1, 2, 3])} = 1
     summation_method {mustBeMember(summation_method, [1,2])} = 1
     LUT_path = ""
 end
