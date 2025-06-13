@@ -11,8 +11,7 @@ function [aerodynamic_force_B__N, ...
                                                         bodies_rotation_angles__rad, ...
                                                         temperature_ratio_method,...
                                                         model,...
-                                                        summation_method, ...
-                                                        LUT_path)
+                                                        LUT_data)
 %% vleoAerodynamics - Calculate the aerodynamic force and torque acting on a satellite in VLEO
 %
 %   [aeroForce__N, aeroTorque__Nm] = vleoAerodynamics(attitude_quaternion_BI, ...
@@ -79,8 +78,7 @@ arguments
     bodies_rotation_angles__rad
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
     model {mustBeMember(model, [1, 2, 3])} = 1
-    summation_method {mustBeMember(summation_method, [1,2])} = 1
-    LUT_path = ""
+    LUT_data (:,5) {mustBeNumeric, mustBeReal} = []
 end
 %% Abbreviations
 q_BI = attitude_quaternion_BI;
@@ -188,7 +186,7 @@ switch model
                                                 v_indiv_B,...
                                                 deltas,...
                                                 density__kg_per_m3,...
-                                                LUT_path);
+                                                LUT_data);
     case 3
         [aerodynamic_force_B__N,aerodynamic_torque_B__Nm] = dummy(areas(ind_not_shadowed),...
                                                                 v_indiv_B,...
@@ -197,25 +195,6 @@ switch model
     otherwise
         error('invalid model')
 end
-switch summation_method
-    case 1
-        % Sum over all faces of all bodies
-        aerodynamic_force_B__N = sum(aerodynamic_force_B__N, 2);
-        aerodynamic_torque_B__Nm = sum(aerodynamic_torque_B__Nm, 2);
-    case 2
-        % Sum over all faces of each body separately
-        aerodynamic_force_raw_B__N = aerodynamic_force_B__N;
-        aerodynamic_torque_raw_B__Nm = aerodynamic_torque_B__Nm;
-        aerodynamic_force_B__N = zeros(3, num_bodies);
-        aerodynamic_torque_B__Nm = zeros(3, num_bodies);
-        for i= 1:num_bodies
-            % Get indices of faces belonging to the current body
-            current_indices = (face_indices_to_body == i);
-            % Sum forces and torques for the current body
-            aerodynamic_force_B__N(:,i) = sum(aerodynamic_force_raw_B__N(:,current_indices), 2);
-            aerodynamic_torque_B__Nm(:,i) = sum(aerodynamic_torque_raw_B__Nm(:,current_indices), 2);
-        end
-
-    otherwise
-        error('invalid summation method')
+aerodynamic_force_B__N = sum(aerodynamic_force_B__N, 2);
+aerodynamic_torque_B__Nm = sum(aerodynamic_torque_B__Nm, 2);
 end
