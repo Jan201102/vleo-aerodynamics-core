@@ -88,13 +88,13 @@ switch temperature_ratio_method
         % Exact term according to [2]
         enum = scosdeltas .* erfcterm;
         denom = 1/sqrt(pi) * exp(-scosdeltas.^2) + enum;
-        T_rat = alpha .* (2*kB*Tw)./(m*V.^2) + (1-alpha) .* (1 + s.^2/2 + 1/4 * enum./denom);
+        T_rat = alpha .* (2*kB*Tw)./(m*V.^2) .* s.^2 + (1-alpha) .* (1 + s.^2/2 + 1/4 * enum./denom);
     case 2
         % Hyperthermal approximation according to [2]
         T_rat = s.^2/2 .* (1 + alpha .* ((4*kB*Tw)./(m*V.^2) - 1)) + 5/4 * (1 - alpha);
     case 3
         % Hyperthermal Approximation according to [3]
-        T_rat = s.^2/2 * (1 + alpha .* ((4*kB*Tw)./(m*V.^2) - 1));
+        T_rat = s.^2/2 .* (1 + alpha .* ((4*kB*Tw)./(m*V.^2) - 1));
     otherwise
         error('Invalid temperature ratio method');
 end
