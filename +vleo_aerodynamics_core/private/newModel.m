@@ -4,7 +4,7 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     v_rels__m_per_s,...
     deltas__rad,...
     density__kg_per_m3,...
-    LUT_file)
+    LUT_data)
     %% newModel - computes aerodynamic forces based on the new IRS Model.
     % Inputs:
     %   areas__m2: 1xN array of the areas of N triangles
@@ -29,15 +29,8 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
         v_rels__m_per_s (3,:) {mustBeNumeric, mustBeReal};
         deltas__rad (1,:) {mustBeNumeric, mustBeReal};
         density__kg_per_m3 (1,1) {mustBeNumeric, mustBeReal, mustBePositive};
-        LUT_file (1,1) string {mustBeFile};
+        LUT_data (:,5) {mustBeNumeric, mustBeReal};
     end
-
-    persistent cached_LUT_file lut
-    if isempty(cached_LUT_file) || ~strcmp(cached_LUT_file, LUT_file)
-        % If the LUT file has changed, read it again
-        cached_LUT_file = LUT_file;
-        lut = readmatrix(LUT_file);
-    end 
 
     %% Abbreviations
     v_rels = v_rels__m_per_s;
@@ -49,12 +42,11 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     AOA__deg = 90-deltas__rad*180/pi;
     wake_faces = AOA__deg < 0;
     AOA__deg = abs(AOA__deg);
-    lut = readmatrix(LUT_file);
-    AOA_lut = lut(:,1);
-    C_l_ram_lut = lut(:,2);
-    C_d_ram_lut = lut(:,3);
-    C_l_wake_lut = lut(:,4);
-    C_d_wake_lut = lut(:,5);
+    AOA_lut = LUT_data(:,1);
+    C_l_ram_lut = LUT_data(:,2);
+    C_d_ram_lut = LUT_data(:,3);
+    C_l_wake_lut = LUT_data(:,4);
+    C_d_wake_lut = LUT_data(:,5);
     C_d_ram = interp1(AOA_lut,C_d_ram_lut,AOA__deg,"linear");
     C_l_ram = interp1(AOA_lut,C_l_ram_lut,AOA__deg,"linear");
     C_d_wake = interp1(AOA_lut,C_d_wake_lut,AOA__deg,"linear");
@@ -81,9 +73,3 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     aeroForce__N = F_l + F_d;
     aeroTorque__Nm = cross(centroids__m,aeroForce__N);
 end
-
-
-
-
-
-   
