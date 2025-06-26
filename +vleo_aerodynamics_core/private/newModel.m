@@ -13,9 +13,12 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     %   v_rels__m_per_s: 3xN array of relative velocities of N triangles
     %   deltas__rad: 1xN array of angles between the flow direction and the normals of N triangles
     %   density__kg_per_m3: scalar value of the incomming streams density
-    %   LUT_file: path of the .csv-file for the LUT wich holds the c_l and c_d
-    %   values depending on the AOA.
-    %
+    %   LUT_data: a 'griddedInterpolant' object containing the lookup table data for
+    %             the 4 aerodynamic coefficients:
+    %             -  C_l_ram
+    %             -  C_d_ram
+    %             -  C_l_wake
+    %             -  C_d_wake
     % Outputs:
     %   aeroForce__N: 3x1 array of the aerodynamic force acting on the body in the same coordinate
     %                 system as the inputs normals and centroids
@@ -29,9 +32,11 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
         v_rels__m_per_s (3,:) {mustBeNumeric, mustBeReal};
         deltas__rad (1,:) {mustBeNumeric, mustBeReal};
         density__kg_per_m3 (1,1) {mustBeNumeric, mustBeReal, mustBePositive};
-        LUT_data (:,5) {mustBeNumeric, mustBeReal};
+        LUT_data {mustBeA(LUT_data, 'griddedInterpolant')};
     end
-
+    %% assert that the return of Lut_data is a nx4 matrix
+    assert(isequal(size(LUT_data.Values,2),4), ...
+        'LUT_data must return a matrix with 4 columns for C_l_ram, C_d_ram, C_l_wake, C_d_wake');
     %% Abbreviations
     v_rels = v_rels__m_per_s;
     V = vecnorm(v_rels);
@@ -42,15 +47,11 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     AOA__deg = 90-deltas__rad*180/pi;
     wake_faces = AOA__deg < 0;
     AOA__deg = abs(AOA__deg);
-    AOA_lut = LUT_data(:,1);
-    C_l_ram_lut = LUT_data(:,2);
-    C_d_ram_lut = LUT_data(:,3);
-    C_l_wake_lut = LUT_data(:,4);
-    C_d_wake_lut = LUT_data(:,5);
-    C_d_ram = interp1(AOA_lut,C_d_ram_lut,AOA__deg,"linear");
-    C_l_ram = interp1(AOA_lut,C_l_ram_lut,AOA__deg,"linear");
-    C_d_wake = interp1(AOA_lut,C_d_wake_lut,AOA__deg,"linear");
-    C_l_wake = interp1(AOA_lut,C_l_wake_lut,AOA__deg,"linear");
+    c = LUT_data(AOA__deg);
+    C_l_ram = c(:,1)';
+    C_d_ram = c(:,2)';
+    C_l_wake = c(:,3)';
+    C_d_wake = c(:,4)';
 
     C_d = C_d_ram;
     C_l = C_l_ram;
