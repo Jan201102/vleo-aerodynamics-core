@@ -61,7 +61,11 @@ function [aerodynamic_total_force_B__N, ...
 %    summation_method: Scalar value of the method to sum the aerodynamic forces and torques
 %                     1: sum over all faces of all bodies
 %                     2: sum over all faces of each body separately
-%    LUT_path: Path to the lookup table for the new IRS model
+%    LUT_data: griddedInterpolant object containing the lookup table data for the 4 aerodynamic coefficients:
+%              -  C_l_ram
+%              -  C_d_ram
+%              -  C_l_wake
+%              -  C_d_wake
 %
 %  Outputs:
 %   aerodynamic_total_force_B__N: 3x1 array of the aerodynamic force acting on the satellite expressed in the body frame
@@ -83,7 +87,7 @@ arguments
     bodies_rotation_angles__rad
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
     model {mustBeMember(model, [1, 2, 3])} = 1
-    LUT_data (:,5) {mustBeNumeric, mustBeReal} = []
+    LUT_data {mustBeA(LUT_data, 'griddedInterpolant')} = [];
 end
 %% Abbreviations
 q_BI = attitude_quaternion_BI;
