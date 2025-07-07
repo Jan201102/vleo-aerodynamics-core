@@ -87,8 +87,15 @@ arguments
     bodies_rotation_angles__rad
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
     model {mustBeMember(model, [1, 2, 3])} = 1
-    LUT_data {mustBeA(LUT_data, 'griddedInterpolant')} = [];
+    LUT_data  = []
 end
+
+if ~isempty(LUT_data) && ~isa(LUT_data, 'griddedInterpolant')
+    eid = 'LUT:InvalidType';
+    msg = 'LUT_data must be empty or a griddedInterpolant object.';
+    throwAsCaller(MException(eid, msg));
+end
+
 %% Abbreviations
 q_BI = attitude_quaternion_BI;
 omega = rotational_velocity_BI_B__rad_per_s;
