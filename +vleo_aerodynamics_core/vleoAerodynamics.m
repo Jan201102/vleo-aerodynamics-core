@@ -26,8 +26,7 @@ function [aerodynamic_total_force_B__N, ...
 %                                                       bodies, ...
 %                                                       bodies_rotation_angles__rad, ...
 %                                                       temperature_ratio_method,...
-%                                                       model,...
-%                                                       summation_method, ...      
+%                                                       model,...    
 %                                                       LUT_path)
 %
 %   This function calculates the aerodynamic force and torque acting on a satellite in VLEO.
@@ -58,9 +57,6 @@ function [aerodynamic_total_force_B__N, ...
 %           1. classical approach (Sentmann)
 %           2. new IRS model
 %           3. dummy model
-%    summation_method: Scalar value of the method to sum the aerodynamic forces and torques
-%                     1: sum over all faces of all bodies
-%                     2: sum over all faces of each body separately
 %    LUT_data: griddedInterpolant object containing the lookup table data for the 4 aerodynamic coefficients:
 %              -  C_l_ram
 %              -  C_d_ram
@@ -177,7 +173,7 @@ v_indiv_norm = vecnorm(v_indiv_B);
 v_indiv_dir_B = v_indiv_B ./ v_indiv_norm;
 
 % Individual angles between flow and normals
-deltas = real(acos(dot(-v_indiv_dir_B, normals_B(:,ind_not_shadowed))));
+deltas = real(acos(dot(-v_indiv_dir_B, normals_B(:,ind_not_shadowed),1)));
 
 % remove shadowed faces indices from face_indices_to_body
 face_indices_to_body = face_indices_to_body(ind_not_shadowed);
