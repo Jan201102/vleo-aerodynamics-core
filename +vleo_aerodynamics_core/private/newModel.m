@@ -14,11 +14,9 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     %   deltas__rad: 1xN array of angles between the flow direction and the normals of N triangles
     %   density__kg_per_m3: scalar value of the incomming streams density
     %   LUT_data: a 'griddedInterpolant' object containing the lookup table data for
-    %             the 4 aerodynamic coefficients:
-    %             -  C_l_ram
-    %             -  C_d_ram
-    %             -  C_l_wake
-    %             -  C_d_wake
+    %             the 2 aerodynamic coefficients,negative angles of attack resemble wake faces:
+    %             -  C_l
+    %             -  C_d
     % Outputs:
     %   aeroForce__N: 3x1 array of the aerodynamic force acting on the body in the same coordinate
     %                 system as the inputs normals and centroids
@@ -35,8 +33,8 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
         LUT_data {mustBeA(LUT_data, 'griddedInterpolant')};
     end
     %% assert that the return of Lut_data is a nx4 matrix
-    assert(isequal(size(LUT_data.Values,2),4), ...
-        'LUT_data must return a matrix with 4 columns for C_l_ram, C_d_ram, C_l_wake, C_d_wake');
+    assert(isequal(size(LUT_data.Values,2),2), ...
+        'LUT_data must return a matrix with 2 columns for C_l, C_d');
     %% Abbreviations
     v_rels = v_rels__m_per_s;
     V = vecnorm(v_rels);
@@ -45,19 +43,9 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
 
     %%LUT
     AOA__deg = 90-deltas__rad*180/pi;
-    wake_faces = AOA__deg < 0;
-    AOA__deg = abs(AOA__deg);
     c = LUT_data(AOA__deg);
-    C_l_ram = c(:,1)';
-    C_d_ram = c(:,2)';
-    C_l_wake = c(:,3)';
-    C_d_wake = c(:,4)';
-
-    C_d = C_d_ram;
-    C_l = C_l_ram;
-    C_d(wake_faces) = C_d_wake(wake_faces);
-    C_l(wake_faces) = C_l_wake(wake_faces);
-
+    C_l = c(:,1)';
+    C_d = c(:,2)';
 
     %darg
     F_d_mag = 0.5*rho*V.^2.*areas__m2.*C_d;
@@ -72,5 +60,23 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
 
     %resultant force
     aeroForce__N = F_l + F_d;
-    aeroTorque__Nm = cross(centroids__m,aeroForce__N);
+    aeroTorque__Nm = cross(centroids__m,aeroForce__N,1);
+
+    %plot force vectors attached to the centroids
+    % figure;
+    % quiver3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
+    %     aeroForce__N(1,:), aeroForce__N(2,:), aeroForce__N(3,:), ...
+    %     'AutoScale', 'on', 'Color', 'r', 'LineWidth', 1.5);
+    % %plot centroids as points
+    % hold on;
+    % scatter3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
+    %     50, 'filled', 'MarkerFaceColor', 'b', 'DisplayName', 'Centroids');
+    % %plot normals as arrows
+    % quiver3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
+    %     normals(1,:), normals(2,:), normals(3,:), ...
+    %     'AutoScale', 'on', 'Color', 'g', 'LineWidth', 1.5, 'DisplayName', 'Normals');
+    % %plot the torque vectors
+    % quiver3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
+    %     aeroTorque__Nm(1,:), aeroTorque__Nm(2,:), aeroTorque__Nm(3,:), ...
+    %     'AutoScale', 'on', 'Color', 'k', 'LineWidth', 1.5, 'DisplayName', 'Torque');
 end
