@@ -4,7 +4,7 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     v_rels__m_per_s,...
     deltas__rad,...
     density__kg_per_m3,...
-    LUT_data)
+    aerodynamic_coefficents)
     %% newModel - computes aerodynamic forces based on the new IRS Model.
     % Inputs:
     %   areas__m2: 1xN array of the areas of N triangles
@@ -13,7 +13,12 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     %   v_rels__m_per_s: 3xN array of relative velocities of N triangles
     %   deltas__rad: 1xN array of angles between the flow direction and the normals of N triangles
     %   density__kg_per_m3: scalar value of the incomming streams density
-    %   LUT_data: a 'griddedInterpolant' object containing the lookup table data for
+    %   aerodynamic_coefficent_functions: struct with one field for C_l and
+    %                                     C_d in dependece of Angle of
+    %                                     Attack:
+    %                                     1. field name: curve_c_l
+    %                                     2. field name: curve_c_d
+    %   aerodynamic_coefficent_functions: a 'griddedInterpolant' object containing the lookup table data for
     %             the 2 aerodynamic coefficients,negative angles of attack resemble wake faces:
     %             -  C_l
     %             -  C_d
@@ -30,11 +35,22 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
         v_rels__m_per_s (3,:) {mustBeNumeric, mustBeReal};
         deltas__rad (1,:) {mustBeNumeric, mustBeReal};
         density__kg_per_m3 (1,1) {mustBeNumeric, mustBeReal, mustBePositive};
-        LUT_data {mustBeA(LUT_data, 'griddedInterpolant')};
+        aerodynamic_coefficents ;
     end
-    %% assert that the return of Lut_data is a nx4 matrix
-    assert(isequal(size(LUT_data.Values,2),2), ...
+    %% assertions
+    if isstruct(aerodynamic_coefficents) 
+        % required_fields = {'curve_c_l','curve_c_d'};
+        % for i = 1:numel(required_fields)
+        %     if ~isfield(aerodynamic_coefficents,required_fields{i})
+        %         error('Missing required field: %s', required_fields{i});
+        %     end
+        % end
+    elseif isa(aerodynamic_coefficents,'griddedInterpolant')
+            assert(isequal(size(aerodynamic_coefficents.Values,2),2), ...
         'LUT_data must return a matrix with 2 columns for C_l, C_d');
+    else
+        error('aerodynamic_coefficent_functions must be a struct with fields curve_c_l and curve_c_d or a griddedInterpolant object.');
+    end
     %% Abbreviations
     v_rels = v_rels__m_per_s;
     V = vecnorm(v_rels);
@@ -43,9 +59,15 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
 
     %%LUT
     AOA__deg = 90-deltas__rad*180/pi;
-    c = LUT_data(AOA__deg);
-    C_l = c(:,1)';
-    C_d = c(:,2)';
+    if isstruct(aerodynamic_coefficents)
+        % Use the struct with fields curve_c_l and curve_c_d
+        C_l = ppval(aerodynamic_coefficents.pp_Cl,AOA__deg);
+        C_d = ppval(aerodynamic_coefficents.pp_Cd,AOA__deg);
+    else
+        c = aerodynamic_coefficents(AOA__deg);
+        C_l = c(:,1)';
+        C_d = c(:,2)';
+    end
 
     %darg
     F_d_mag = 0.5*rho*V.^2.*areas__m2.*C_d;
