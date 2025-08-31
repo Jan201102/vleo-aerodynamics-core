@@ -46,11 +46,14 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
         %     end
         % end
     elseif isa(aerodynamic_coefficents,'griddedInterpolant')
-            assert(isequal(size(aerodynamic_coefficents.Values,2),2), ...
-        'LUT_data must return a matrix with 2 columns for C_l, C_d');
+        % Replace assert with if-statement to avoid compile-time evaluation
+        if size(aerodynamic_coefficents.Values, 2) ~= 2
+            error('LUT_data must return a matrix with 2 columns for C_l, C_d');
+        end
     else
         error('aerodynamic_coefficent_functions must be a struct with fields curve_c_l and curve_c_d or a griddedInterpolant object.');
     end
+    
     %% Abbreviations
     v_rels = v_rels__m_per_s;
     V = vecnorm(v_rels);
@@ -84,21 +87,4 @@ function [aeroForce__N, aeroTorque__Nm] = newModel(areas__m2,...
     aeroForce__N = F_l + F_d;
     aeroTorque__Nm = cross(centroids__m,aeroForce__N,1);
 
-    %plot force vectors attached to the centroids
-    % figure;
-    % quiver3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
-    %     aeroForce__N(1,:), aeroForce__N(2,:), aeroForce__N(3,:), ...
-    %     'AutoScale', 'on', 'Color', 'r', 'LineWidth', 1.5);
-    % %plot centroids as points
-    % hold on;
-    % scatter3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
-    %     50, 'filled', 'MarkerFaceColor', 'b', 'DisplayName', 'Centroids');
-    % %plot normals as arrows
-    % quiver3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
-    %     normals(1,:), normals(2,:), normals(3,:), ...
-    %     'AutoScale', 'on', 'Color', 'g', 'LineWidth', 1.5, 'DisplayName', 'Normals');
-    % %plot the torque vectors
-    % quiver3(centroids__m(1,:), centroids__m(2,:), centroids__m(3,:), ...
-    %     aeroTorque__Nm(1,:), aeroTorque__Nm(2,:), aeroTorque__Nm(3,:), ...
-    %     'AutoScale', 'on', 'Color', 'k', 'LineWidth', 1.5, 'DisplayName', 'Torque');
 end
