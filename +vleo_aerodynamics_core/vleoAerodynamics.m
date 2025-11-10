@@ -13,7 +13,7 @@ function [aerodynamic_total_force_B__N, ...
                                                         bodies_rotation_angles__rad, ...
                                                         temperature_ratio_method,...
                                                         model,...
-                                                        LUT_data)
+                                                        aerodynamic_coefficients)
 %% vleoAerodynamics - Calculate the aerodynamic force and torque acting on a satellite in VLEO
 %
 %   [aeroForce__N, aeroTorque__Nm] = vleoAerodynamics(attitude_quaternion_BI, ...
@@ -26,9 +26,8 @@ function [aerodynamic_total_force_B__N, ...
 %                                                       bodies, ...
 %                                                       bodies_rotation_angles__rad, ...
 %                                                       temperature_ratio_method,...
-%                                                       model,...
-%                                                       summation_method, ...      
-%                                                       LUT_path)
+%                                                       model,...    
+%                                                       aerodynamic_coefficients)
 %
 %   This function calculates the aerodynamic force and torque acting on a satellite in VLEO.
 %
@@ -58,9 +57,6 @@ function [aerodynamic_total_force_B__N, ...
 %           1. classical approach (Sentmann)
 %           2. new IRS model
 %           3. dummy model
-%    summation_method: Scalar value of the method to sum the aerodynamic forces and torques
-%                     1: sum over all faces of all bodies
-%                     2: sum over all faces of each body separately
 %    LUT_data: griddedInterpolant object containing the lookup table data for the 4 aerodynamic coefficients:
 %              -  C_l_ram
 %              -  C_d_ram
@@ -87,8 +83,9 @@ arguments
     bodies_rotation_angles__rad
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
     model {mustBeMember(model, [1, 2, 3])} = 1
-    LUT_data {mustBeA(LUT_data, 'griddedInterpolant')} = [];
+    aerodynamic_coefficients = struct()
 end
+
 %% Abbreviations
 q_BI = attitude_quaternion_BI;
 omega = rotational_velocity_BI_B__rad_per_s;
@@ -170,7 +167,7 @@ v_indiv_norm = vecnorm(v_indiv_B);
 v_indiv_dir_B = v_indiv_B ./ v_indiv_norm;
 
 % Individual angles between flow and normals
-deltas = real(acos(dot(-v_indiv_dir_B, normals_B(:,ind_not_shadowed))));
+deltas = real(acos(dot(-v_indiv_dir_B, normals_B(:,ind_not_shadowed),1)));
 
 % remove shadowed faces indices from face_indices_to_body
 face_indices_to_body = face_indices_to_body(ind_not_shadowed);
@@ -195,7 +192,7 @@ switch model
                                                 v_indiv_B,...
                                                 deltas,...
                                                 density__kg_per_m3,...
-                                                LUT_data);
+                                                aerodynamic_coefficients);
     case 3
         [aerodynamic_force_B__N,aerodynamic_torque_B__Nm] = dummy(areas(ind_not_shadowed),...
                                                                 v_indiv_B,...

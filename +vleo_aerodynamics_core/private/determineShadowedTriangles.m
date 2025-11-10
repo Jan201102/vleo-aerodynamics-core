@@ -124,7 +124,7 @@ if any(ind_shadowing) && any(ind_shadowable)
     end
 else
     % If no shadowing triangles are present, no triangles can be shadowed
-    ind_shadowed = ind_shadowing;
+    ind_shadowed = false(size(ind_shadowable));
     if ~any(ind_shadowable)
         disp('no triangles are flow-facing');
     end
