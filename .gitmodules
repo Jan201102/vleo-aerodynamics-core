@@ -1,0 +1,3 @@
+[submodule "Dependencies/shader"]
+	path = Dependencies/shader
+	url = https://github.com/Jan201102/vleo_cpp_shader

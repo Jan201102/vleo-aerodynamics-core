@@ -13,7 +13,8 @@ function [aerodynamic_total_force_B__N, ...
                                                         bodies_rotation_angles__rad, ...
                                                         temperature_ratio_method,...
                                                         model,...
-                                                        aerodynamic_coefficients)
+                                                        aerodynamic_coefficients,...
+                                                        gpu_shading)
 %% vleoAerodynamics - Calculate the aerodynamic force and torque acting on a satellite in VLEO
 %
 %   [aeroForce__N, aeroTorque__Nm] = vleoAerodynamics(attitude_quaternion_BI, ...
@@ -27,7 +28,8 @@ function [aerodynamic_total_force_B__N, ...
 %                                                       bodies_rotation_angles__rad, ...
 %                                                       temperature_ratio_method,...
 %                                                       model,...    
-%                                                       aerodynamic_coefficients)
+%                                                       aerodynamic_coefficients,
+%                                                       gpu_shading)
 %
 %   This function calculates the aerodynamic force and torque acting on a satellite in VLEO.
 %
@@ -62,6 +64,7 @@ function [aerodynamic_total_force_B__N, ...
 %              -  C_d_ram
 %              -  C_l_wake
 %              -  C_d_wake
+%   gpu_shading: boolean value indicating whether to use GPU shading for shadow determination
 %
 %  Outputs:
 %   aerodynamic_total_force_B__N: 3x1 array of the aerodynamic force acting on the satellite expressed in the body frame
@@ -84,6 +87,7 @@ arguments
     temperature_ratio_method {mustBeMember(temperature_ratio_method, [1, 2, 3])}
     model {mustBeMember(model, [1, 2, 3])} = 1
     aerodynamic_coefficients = struct()
+    gpu_shading logical = false
 end
 
 %% Abbreviations
@@ -155,7 +159,11 @@ end
 v_rel_B = smu.unitQuat.att.transformVector(q_BI, v_rel_I);
 v_rel_dir_B = v_rel_B ./ norm(v_rel_B);
 
-ind_not_shadowed = ~determineShadowedTriangles(vertices_B, centroids_B, normals_B, v_rel_dir_B);
+if gpu_shading
+    %%TODO: implement GPU version
+    ind_not_shadowed = ~determineShadowedTrianglesGPU(vertices_B, centroids_B, normals_B, v_rel_dir_B);
+else
+    ind_not_shadowed = ~determineShadowedTriangles(vertices_B, centroids_B, normals_B, v_rel_dir_B);
 
 %% Calculate forces and torques
 % Determine individual relative velocity of each face by adding the term due to rotation
