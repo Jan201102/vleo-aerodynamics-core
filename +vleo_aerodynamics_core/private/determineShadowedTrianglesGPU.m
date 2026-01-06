@@ -11,7 +11,6 @@ function ind_shadowed = determineShadowedTrianglesGPU(vertices, normals, dir)
 %   vertices: 3x3xN array of vertices of N triangles, each 3x3 matrix represents on triangle
 %             of which each column represents the x, y, z coordinates of one of the 
 %             triangle's vertices
-%   centroids: 3xN array of surface centroids of N triangles
 %   normals: 3xN array of surface normals of N triangles
 %   dir: 3x1 array representing the a direction along which the shadowing is determined
 %
@@ -37,10 +36,17 @@ if ~isFolderOnPath(gpu_implementation_path)
     addpath(gpu_implementation_path);
 end
 if any(ind_flow_facing)
+    %normalize geometry to -1,1 in all dimensions
+    %1. center geometry
+    vertices_centered = vertices - mean(vertices, [2,3]);
+    %2. scale geometry
+    max_extent = max(abs(vertices_centered), [], 'all');
+    vertices_normalized = vertices_centered / max_extent;
+
     %reshape vertices to row vector
     shaded = false(1,num_triangles);
-    vertices_flat = reshape(vertices, 1, []);
-    triangle_ids = zeros(1,num_vertices);
+    vertices_flat = single(reshape(vertices_normalized, 1, []));  % Convert to single precision
+    triangle_ids = uint32(zeros(1,num_vertices));  % Use uint32 type
     for id = 1:num_triangles
         triangle_ids(id*3-2:id*3) = id;
     end
@@ -52,17 +58,22 @@ if any(ind_flow_facing)
     % 4. Call the function
     try
         % Pass the clib objects and the uint64 lengths
-        clib.BinaryShader.BinaryRenderer(verticesArg,triangleIDsArg,shadedArg, -dir(1),-dir(2),-dir(3));
+        clib.BinaryShader.BinaryRenderer(verticesArg,triangleIDsArg,shadedArg, dir(1),dir(2),dir(3));
     
         % 5. Convert back to MATLAB to see the result
         ind_gpu_visible = logical(shadedArg);
+        fprintf('GPU marked %d triangles as visible\n', sum(ind_gpu_visible));
     catch ME
-        fprintf('Error: %s\n', ME.message);
+        fprintf('Error calling BinaryRenderer: %s\n', ME.message);
+        % If GPU fails, fall back to marking all flow-facing as visible
+        ind_gpu_visible = ind_flow_facing;
     end
     
     ind_visible = ind_rear_facing | ind_gpu_visible;
     ind_shadowed = ~ind_visible;
-
+else
+    % All triangles are rear-facing, so all are shadowed
+    ind_shadowed = false(1, num_triangles);
 end
 end
 

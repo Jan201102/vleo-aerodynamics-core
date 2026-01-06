@@ -56,8 +56,8 @@ if any(ind_shadowing) && any(ind_shadowable)
     w = reshape(w_list, 3, []);
 
     % w coordinates of the most downwind flow-facing vertex and the most upwind rear-facing vertex
-    max_w_shadowable = max(w_list(:,ind_shadowable));
-    min_w_shadowing = min(w_list(:,ind_shadowing));
+    max_w_shadowable = max(w(:,ind_shadowable), [], 'all');
+    min_w_shadowing = min(w(:,ind_shadowing), [], 'all');
 
     % Decrease sets of shadowing and shadowable triangles
     ind_shadowing = (ind_shadowing & any(w < max_w_shadowable));
@@ -134,7 +134,7 @@ end
 
 function result = checkOriginInAnyTriangle(vertices)
 % Check if any of the triangles defined by the vertices contains the origin using the barycentric coordinates method
-    for i = size(vertices, 3)
+    for i = 1:size(vertices, 3)
         
         % Coordinates of the i-th triangle's vertices a, b, and c
         a = squeeze(vertices(:,1,i));

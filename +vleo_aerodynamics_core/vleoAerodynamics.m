@@ -160,10 +160,54 @@ v_rel_B = smu.unitQuat.att.transformVector(q_BI, v_rel_I);
 v_rel_dir_B = v_rel_B ./ norm(v_rel_B);
 
 if gpu_shading
-    %%TODO: implement GPU version
-    ind_not_shadowed = ~determineShadowedTrianglesGPU(vertices_B, centroids_B, normals_B, v_rel_dir_B);
+    ind_not_shadowed = ~determineShadowedTrianglesGPU(vertices_B, normals_B, v_rel_dir_B);
 else
     ind_not_shadowed = ~determineShadowedTriangles(vertices_B, centroids_B, normals_B, v_rel_dir_B);
+
+end
+% %% Visualize CPU results
+% if gpu_shading
+%     figure('Name', 'Shadowing GPU', 'Position', [100 100 1400 600]);
+% else
+%     figure('Name', 'Shadowing CPU', 'Position', [100 100 1400 600]);
+% end
+% 
+% hold on;
+% axis equal;
+% grid on;
+% xlabel('X');
+% ylabel('Y');
+% zlabel('Z');
+% view(3);
+% 
+% % Plot shadowed triangles in red
+% h_shadowed = [];
+% for i = 1:size(vertices_B, 3)
+%     if ~ind_not_shadowed(i)
+%         v = vertices_B(:, :, i);
+%         h = patch('Vertices', v', 'Faces', [1 2 3], 'FaceColor', 'r', 'EdgeColor', 'k', 'FaceAlpha', 0.7);
+%         if isempty(h_shadowed)
+%             h_shadowed = h;
+%         end
+%     end
+% end
+% 
+% % Plot non-shadowed triangles in green
+% h_nonshadowed = [];
+% for i = 1:size(vertices_B, 3)
+%     if ind_not_shadowed(i)
+%         v = vertices_B(:, :, i);
+%         h = patch('Vertices', v', 'Faces', [1 2 3], 'FaceColor', 'g', 'EdgeColor', 'k', 'FaceAlpha', 0.7);
+%         if isempty(h_nonshadowed)
+%             h_nonshadowed = h;
+%         end
+%     end
+% end
+% 
+% % Add flow direction arrow
+% h_flow = quiver3(0, 0, 0, 10*v_rel_dir_B(1), 10*v_rel_dir_B(2), 10*v_rel_dir_B(3), ...
+%     'LineWidth', 2, 'Color', 'b', 'MaxHeadSize', 2);
+% legend([h_shadowed, h_nonshadowed, h_flow], {'Shadowed', 'Non-shadowed', 'Flow Direction'});
 
 %% Calculate forces and torques
 % Determine individual relative velocity of each face by adding the term due to rotation
