@@ -18,6 +18,12 @@ function ind_shadowed = determineShadowedTrianglesGPU(vertices, normals, dir)
 %   ind_shadowed: 1xN logical array indicating which triangles are shadowed
 %
 
+% Declare extrinsic functions for code generation
+coder.extrinsic('addpath');
+coder.extrinsic('clibConvertArray');
+coder.extrinsic('clib.BinaryShader.BinaryRenderer');
+coder.extrinsic('logical');
+
 %% Principle
 % first rear facing triangles are determined, then the visible triangles
 % are computed on gpu. lastly both sets (visible and rear-facing) are
@@ -31,10 +37,7 @@ num_vertices = num_triangles*3;
 % Determine which triangles are flow-facing and which are rear-facing
 ind_flow_facing = (delta < pi/2);
 ind_rear_facing = ~ind_flow_facing;
-gpu_implementation_path = "Dependencies/shader/BinaryShader/matlab/BinaryShader";
-if ~isFolderOnPath(gpu_implementation_path)
-    addpath(gpu_implementation_path);
-end
+
 if any(ind_flow_facing)
     %normalize geometry to -1,1 in all dimensions
     %1. center geometry
@@ -56,18 +59,18 @@ if any(ind_flow_facing)
     triangleIDsArg = clibConvertArray("clib.BinaryShader.UnsignedInt",triangle_ids);
 
     % 4. Call the function
-    try
-        % Pass the clib objects and the uint64 lengths
-        clib.BinaryShader.BinaryRenderer(verticesArg,triangleIDsArg,shadedArg, dir(1),dir(2),dir(3));
+    % Initialize output variable with correct type for code generation
+    ind_gpu_visible = false(1, num_triangles);
     
-        % 5. Convert back to MATLAB to see the result
-        ind_gpu_visible = logical(shadedArg);
+    % Pass the clib objects and the uint64 lengths
+    clib.BinaryShader.BinaryRenderer(verticesArg,triangleIDsArg,shadedArg, dir(1),dir(2),dir(3));
+
+    % 5. Convert back to MATLAB to see the result
+    ind_gpu_visible(:) = logical(shadedArg);
+    if coder.target('MATLAB')
         fprintf('GPU marked %d triangles as visible\n', sum(ind_gpu_visible));
-    catch ME
-        fprintf('Error calling BinaryRenderer: %s\n', ME.message);
-        % If GPU fails, fall back to marking all flow-facing as visible
-        ind_gpu_visible = ind_flow_facing;
     end
+    
     
     ind_visible = ind_rear_facing | ind_gpu_visible;
     ind_shadowed = ~ind_visible;
@@ -75,23 +78,4 @@ else
     % All triangles are rear-facing, so all are shadowed
     ind_shadowed = false(1, num_triangles);
 end
-end
-
-function onPath = isFolderOnPath(folder)
-% isFolderOnPath  Return true if folder is on the MATLAB search path.
-%   folder can be absolute or relative (relative resolved with pwd).
-
-% Resolve to absolute canonical form (remove trailing filesep)
-folderAbs = char(java.io.File(folder).getCanonicalPath());  % returns absolute
-% Get current MATLAB path entries and canonicalize each
-entries = strsplit(path, pathsep);
-for k = 1:numel(entries)
-    try
-        entries{k} = char(java.io.File(entries{k}).getCanonicalPath());
-    catch
-        % ignore invalid entries
-        entries{k} = '';
-    end
-end
-onPath = any(strcmpi(folderAbs, entries));
 end
